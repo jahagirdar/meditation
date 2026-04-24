@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Serenity</string>
+    <string name="monitoring_active">Monitoring active</string>
+    <string name="enable_monitoring">Enable monitoring</string>
+    <string name="heart_rate_label">Heart rate</string>
+    <string name="stress_label">Stress signal</string>
+</resources>

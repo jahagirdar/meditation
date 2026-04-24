@@ -1,0 +1,3 @@
+-keep class com.serenity.wear.health.StressMonitorService { *; }
+-keep class dagger.hilt.** { *; }
+-dontnote **

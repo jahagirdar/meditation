@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Serenity</string>
+    <string name="notification_channel_timer">Meditation Timer</string>
+    <string name="notification_channel_reminders">Daily Reminders</string>
+    <string name="notification_channel_stress">Stress Nudge</string>
+    <string name="session_active">Meditating</string>
+    <string name="session_paused">Paused</string>
+    <string name="action_end">End</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_start">Begin Session</string>
+    <string name="assessment_title">Daily Self-Assessment</string>
+    <string name="assessment_subtitle">An effort to know whether we are progressing in Dhamma</string>
+    <string name="assessment_blessing">May all beings be happy… be peaceful… be liberated…</string>
+    <string name="stress_nudge_title">Time to breathe 🧘</string>
+    <string name="stress_nudge_action">Start 2-min calm</string>
+</resources>
