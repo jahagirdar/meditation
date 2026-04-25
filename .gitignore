@@ -1,0 +1,21 @@
+# Gradle build outputs
+*.iml
+.gradle
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# IDE
+/.idea
+.DS_Store
+
+# Local SDK path — each developer sets their own
+local.properties
+
+# Generated audio assets — add your own files here
+# app/src/main/res/raw/
+
+# Do NOT ignore:
+# gradle/wrapper/gradle-wrapper.jar  ← needed for CI
+# .github/workflows/                 ← needed for CI

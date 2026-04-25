@@ -1,0 +1,76 @@
+name: Build Serenity APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:          # allows manual trigger from the Actions tab
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ── 2. Java 17 ────────────────────────────────────────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # ── 3. Android SDK ────────────────────────────────────────────────
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 35
+          build-tools: 35.0.0
+          target: default
+          arch: x86_64
+
+      # ── 4. Cache Gradle downloads ─────────────────────────────────────
+      - name: Cache Gradle wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # ── 5. Make gradlew executable ────────────────────────────────────
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # ── 6. Build phone APK ────────────────────────────────────────────
+      - name: Build phone debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+
+      # ── 7. Build WearOS APK ───────────────────────────────────────────
+      - name: Build WearOS debug APK
+        run: ./gradlew :wear:assembleDebug --stacktrace --no-daemon
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+
+      # ── 8. Upload APKs as build artifacts ─────────────────────────────
+      - name: Upload phone APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: serenity-phone-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload WearOS APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: serenity-wear-debug
+          path: wear/build/outputs/apk/debug/wear-debug.apk
+          if-no-files-found: warn    # warn not error — wear build is secondary
