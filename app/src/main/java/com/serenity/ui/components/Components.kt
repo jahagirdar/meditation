@@ -45,9 +45,9 @@ fun TimerConfigSheet(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Text("Configure Session", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("Configure Session", style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold)
 
-            // Name
             OutlinedTextField(
                 value = nameInput,
                 onValueChange = { nameInput = it; edited = edited.copy(name = it) },
@@ -56,70 +56,28 @@ fun TimerConfigSheet(
                 singleLine = true,
             )
 
-            // Duration
             ConfigSection("Duration") {
-                DurationPicker(
-                    seconds = edited.durationSec,
-                    onPick = { edited = edited.copy(durationSec = it) },
-                )
+                DurationPicker(seconds = edited.durationSec, onPick = { edited = edited.copy(durationSec = it) })
             }
-
-            // Warm-up
             ConfigSection("Warm-up") {
-                WarmCoolPicker(
-                    label = "Warm-up before first bell",
-                    seconds = edited.warmupSec,
-                    onPick = { edited = edited.copy(warmupSec = it) },
-                )
+                WarmCoolPicker("Warm-up before first bell", edited.warmupSec) { edited = edited.copy(warmupSec = it) }
             }
-
-            // Cool-down
             ConfigSection("Cool-down") {
-                WarmCoolPicker(
-                    label = "Cool-down after session",
-                    seconds = edited.cooldownSec,
-                    onPick = { edited = edited.copy(cooldownSec = it) },
-                )
+                WarmCoolPicker("Cool-down after session", edited.cooldownSec) { edited = edited.copy(cooldownSec = it) }
             }
-
-            // Interval bell
             ConfigSection("Interval bells") {
-                IntervalPicker(
-                    selected = edited.intervalOption,
-                    onPick = { edited = edited.copy(intervalOption = it) },
-                )
+                IntervalPicker(selected = edited.intervalOption) { edited = edited.copy(intervalOption = it) }
             }
-
-            // Bell sounds
             ConfigSection("Bell sounds") {
-                BellSoundPicker(
-                    label = "Start bell",
-                    selected = edited.startBell,
-                    onPick = { edited = edited.copy(startBell = it) },
-                )
+                BellSoundPicker("Start bell",    edited.startBell)    { edited = edited.copy(startBell = it) }
                 Spacer(Modifier.height(8.dp))
-                BellSoundPicker(
-                    label = "Interval bell",
-                    selected = edited.intervalBell,
-                    onPick = { edited = edited.copy(intervalBell = it) },
-                )
+                BellSoundPicker("Interval bell", edited.intervalBell) { edited = edited.copy(intervalBell = it) }
                 Spacer(Modifier.height(8.dp))
-                BellSoundPicker(
-                    label = "End bell",
-                    selected = edited.endBell,
-                    onPick = { edited = edited.copy(endBell = it) },
-                )
+                BellSoundPicker("End bell",      edited.endBell)      { edited = edited.copy(endBell = it) }
             }
-
-            // Ambient sound
             ConfigSection("Ambient sound") {
-                AmbientSoundPicker(
-                    selected = edited.ambientSound,
-                    onPick = { edited = edited.copy(ambientSound = it) },
-                )
+                AmbientSoundPicker(selected = edited.ambientSound) { edited = edited.copy(ambientSound = it) }
             }
-
-            // Silent mode
             ConfigSection("") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -132,28 +90,19 @@ fun TimerConfigSheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(
-                        checked = edited.silentMode,
-                        onCheckedChange = { edited = edited.copy(silentMode = it) },
-                    )
+                    Switch(checked = edited.silentMode,
+                        onCheckedChange = { edited = edited.copy(silentMode = it) })
                 }
             }
 
-            // Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedButton(
-                    onClick = { onSaveAsNew(edited) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Save as new") }
-                Button(
-                    onClick = { onSave(edited) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Apply") }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(onClick = { onSaveAsNew(edited) }, modifier = Modifier.weight(1f)) {
+                    Text("Save as new")
+                }
+                Button(onClick = { onSave(edited) }, modifier = Modifier.weight(1f)) {
+                    Text("Apply")
+                }
             }
-
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -171,14 +120,13 @@ private fun ConfigSection(title: String, content: @Composable () -> Unit) {
 }
 
 // ──────────────────────────────────────────────
-// Duration Picker — quick chips + ± buttons
+// Duration Picker
 // ──────────────────────────────────────────────
 
 @Composable
 fun DurationPicker(seconds: Int, onPick: (Int) -> Unit) {
     val quickOptions = listOf(5, 10, 15, 20, 30, 45, 60)
     val mins = seconds / 60
-
     Row(verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         IconButton(onClick = { if (mins > 1) onPick((mins - 1) * 60) }) {
@@ -194,70 +142,57 @@ fun DurationPicker(seconds: Int, onPick: (Int) -> Unit) {
     Spacer(Modifier.height(8.dp))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(quickOptions) { m ->
-            FilterChip(
-                selected = seconds == m * 60,
-                onClick = { onPick(m * 60) },
-                label = { Text("${m}m") },
-            )
+            FilterChip(selected = seconds == m * 60, onClick = { onPick(m * 60) },
+                label = { Text("${m}m") })
         }
     }
 }
 
 // ──────────────────────────────────────────────
-// Warm-up / Cool-down picker
+// Warm-up / Cool-down Picker
 // ──────────────────────────────────────────────
 
 @Composable
 fun WarmCoolPicker(label: String, seconds: Int, onPick: (Int) -> Unit) {
-    val options = listOf(0, 30, 60, 90, 120, 180, 300) // 0, 30s, 1m, 1.5m, 2m, 3m, 5m
-    Row(
-        modifier = Modifier.fillMaxWidth(),
+    val options = listOf(0, 30, 60, 90, 120, 180, 300)
+    Row(modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(120.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(options) { s ->
-                FilterChip(
-                    selected = seconds == s,
-                    onClick = { onPick(s) },
-                    label = { Text(if (s == 0) "Off" else if (s < 60) "${s}s" else "${s/60}m") },
-                )
+                FilterChip(selected = seconds == s, onClick = { onPick(s) },
+                    label = { Text(if (s == 0) "Off" else if (s < 60) "${s}s" else "${s/60}m") })
             }
         }
     }
 }
 
 // ──────────────────────────────────────────────
-// Interval picker — 15s, 30s, 1m, 2m … 60m + Off
+// Interval Picker
 // ──────────────────────────────────────────────
 
 @Composable
 fun IntervalPicker(selected: IntervalOption?, onPick: (IntervalOption?) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            FilterChip(
-                selected = selected == null,
-                onClick = { onPick(null) },
-                label = { Text("Off") },
-            )
+            FilterChip(selected = selected == null, onClick = { onPick(null) },
+                label = { Text("Off") })
         }
         items(IntervalOption.entries) { option ->
-            FilterChip(
-                selected = selected == option,
-                onClick = { onPick(option) },
-                label = { Text(option.displayName) },
-            )
+            FilterChip(selected = selected == option, onClick = { onPick(option) },
+                label = { Text(option.displayName) })
         }
     }
 }
 
 // ──────────────────────────────────────────────
-// Bell sound picker
+// Bell Sound Picker
 // ──────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BellSoundPicker(label: String, selected: BellSound, onPick: (BellSound) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -268,7 +203,9 @@ fun BellSoundPicker(label: String, selected: BellSound, onPick: (BellSound) -> U
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             BellSound.entries.forEach { bell ->
@@ -286,18 +223,15 @@ fun BellSoundPicker(label: String, selected: BellSound, onPick: (BellSound) -> U
 }
 
 // ──────────────────────────────────────────────
-// Ambient sound picker
+// Ambient Sound Picker
 // ──────────────────────────────────────────────
 
 @Composable
 fun AmbientSoundPicker(selected: AmbientSound, onPick: (AmbientSound) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(AmbientSound.entries) { sound ->
-            FilterChip(
-                selected = selected == sound,
-                onClick = { onPick(sound) },
-                label = { Text(sound.displayName) },
-            )
+            FilterChip(selected = selected == sound, onClick = { onPick(sound) },
+                label = { Text(sound.displayName) })
         }
     }
 }
@@ -316,12 +250,8 @@ fun PresetCard(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val durationMin = preset.durationSec / 60
-
     Card(
-        modifier = Modifier
-            .width(130.dp)
-            .height(140.dp)
-            .clickable(onClick = onSelect),
+        modifier = Modifier.width(130.dp).height(140.dp).clickable(onClick = onSelect),
         shape = RoundedCornerShape(16.dp),
         border = if (isActive) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         colors = CardDefaults.cardColors(
@@ -331,52 +261,39 @@ fun PresetCard(
         ),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.padding(12.dp).fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
+            Column(modifier = Modifier.padding(12.dp).fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text(preset.name, style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold, maxLines = 2)
                     Text("${durationMin}m", style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Light,
-                        color = MaterialTheme.colorScheme.primary)
+                        fontWeight = FontWeight.Light, color = MaterialTheme.colorScheme.primary)
                 }
                 Column {
-                    if (preset.intervalOption != null) {
+                    if (preset.intervalOption != null)
                         Text("⏱ ${preset.intervalOption.displayName}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (preset.warmupSec > 0) {
+                    if (preset.warmupSec > 0)
                         Text("↑ ${preset.warmupSec/60}m warmup",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
                 }
             }
-
-            // Overflow menu
             Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                IconButton(
-                    onClick = { showMenu = true },
-                    modifier = Modifier.size(28.dp),
-                ) {
+                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Start now") },
+                    DropdownMenuItem(text = { Text("Start now") },
                         onClick = { onStart(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
-                    )
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) })
                     DropdownMenuItem(
                         text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                         onClick = { onDelete(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.Delete, null,
-                            tint = MaterialTheme.colorScheme.error) },
-                    )
+                            tint = MaterialTheme.colorScheme.error) })
                 }
             }
         }

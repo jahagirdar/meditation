@@ -3,6 +3,7 @@ package com.serenity.ui.pranayama
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
@@ -647,5 +648,3 @@ private fun CompleteStat(emoji: String, value: String, label: String) {
     }
 }
 
-// Canvas alias
-private typealias Canvas = androidx.compose.foundation.Canvas

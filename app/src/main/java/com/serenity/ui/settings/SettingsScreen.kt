@@ -2,6 +2,7 @@ package com.serenity.ui.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -11,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,16 +49,18 @@ fun SettingsScreen(
             // ── Appearance ──
             SettingsSectionHeader("Appearance")
 
-            // Theme
             SettingsDropdown(
                 label = "Theme",
-                options = listOf("system" to "System default", "light" to "Light",
-                    "dark" to "Dark", "amoled" to "AMOLED black"),
+                options = listOf(
+                    "system" to "System default",
+                    "light"  to "Light",
+                    "dark"   to "Dark",
+                    "amoled" to "AMOLED black",
+                ),
                 selected = prefs.themeMode,
                 onSelect = { viewModel.setTheme(it) },
             )
 
-            // Accent colour
             Text("Accent colour", style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -66,9 +68,7 @@ fun SettingsScreen(
                     val selected = prefs.accentColour == key
                     IconButton(
                         onClick = { viewModel.setAccent(key) },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape),
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
                     ) {
                         Surface(
                             modifier = Modifier.size(32.dp),
@@ -99,31 +99,22 @@ fun SettingsScreen(
                 checked = prefs.showElapsedTime,
                 onToggle = { viewModel.setShowElapsed(it) },
             )
-
             SettingsSwitch(
                 label = "Breathing animation",
                 subtitle = "Subtle expanding circle during meditation",
                 checked = prefs.breathingAnimation,
                 onToggle = { viewModel.setBreathingAnim(it) },
             )
-
-            // Daily goal
             SettingsSlider(
                 label = "Daily goal",
                 value = prefs.dailyGoalMinutes,
-                range = 5..120,
-                step = 5,
-                unit = "min",
+                range = 5..120, step = 5, unit = "min",
                 onSet = { viewModel.setDailyGoal(it) },
             )
-
-            // Screen dim
             SettingsSlider(
                 label = "Dim screen after",
                 value = prefs.dimScreenAfterSec,
-                range = 10..120,
-                step = 10,
-                unit = "sec",
+                range = 10..120, step = 10, unit = "sec",
                 onSet = { viewModel.setDimScreen(it) },
             )
 
@@ -151,8 +142,8 @@ fun SettingsScreen(
             ).forEach { (index, label, current) ->
                 ReminderRow(
                     label = label,
-                    time = current,
-                    onSet = { viewModel.setReminder(index, it) },
+                    time  = current,
+                    onSet   = { viewModel.setReminder(index, it) },
                     onClear = { viewModel.clearReminder(index) },
                 )
             }
@@ -162,29 +153,26 @@ fun SettingsScreen(
     }
 }
 
+// ── Section header ──
+
 @Composable
 private fun SettingsSectionHeader(title: String) {
-    Text(
-        title,
+    Text(title,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-        fontWeight = FontWeight.SemiBold,
-    )
+        fontWeight = FontWeight.SemiBold)
 }
+
+// ── Toggle row ──
 
 @Composable
 private fun SettingsSwitch(
-    label: String,
-    subtitle: String,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit,
+    label: String, subtitle: String, checked: Boolean, onToggle: (Boolean) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall,
@@ -194,6 +182,9 @@ private fun SettingsSwitch(
     }
 }
 
+// ── Dropdown ──
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsDropdown(
     label: String,
@@ -209,7 +200,9 @@ private fun SettingsDropdown(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { (key, display) ->
@@ -222,20 +215,15 @@ private fun SettingsDropdown(
     }
 }
 
+// ── Slider ──
+
 @Composable
 private fun SettingsSlider(
-    label: String,
-    value: Int,
-    range: IntRange,
-    step: Int,
-    unit: String,
-    onSet: (Int) -> Unit,
+    label: String, value: Int, range: IntRange, step: Int, unit: String, onSet: (Int) -> Unit,
 ) {
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text("$value $unit", style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
@@ -249,21 +237,19 @@ private fun SettingsSlider(
     }
 }
 
+// ── Reminder row ──
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReminderRow(
-    label: String,
-    time: String?,
-    onSet: (String) -> Unit,
-    onClear: () -> Unit,
+    label: String, time: String?, onSet: (String) -> Unit, onClear: () -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         Column {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -274,9 +260,13 @@ private fun ReminderRow(
             )
         }
         Row {
-            TextButton(onClick = { showPicker = true }) { Text(if (time != null) "Change" else "Set") }
+            TextButton(onClick = { showPicker = true }) {
+                Text(if (time != null) "Change" else "Set")
+            }
             if (time != null) {
-                TextButton(onClick = onClear) { Text("Clear", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = onClear) {
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
@@ -285,9 +275,7 @@ private fun ReminderRow(
         AlertDialog(
             onDismissRequest = { showPicker = false },
             title = { Text("Set $label") },
-            text = {
-                TimePicker(state = timePickerState)
-            },
+            text  = { TimePicker(state = timePickerState) },
             confirmButton = {
                 TextButton(onClick = {
                     val h = timePickerState.hour

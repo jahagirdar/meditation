@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Adaptive icon foreground.
+    Canvas is 108×108dp; the "safe zone" visible on all shapes is the
+    central 72×72dp (inset 18dp each side). All artwork is kept within
+    that zone so nothing is clipped on any launcher shape.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Head — centred at (54, 32) in the safe zone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M54,26
+            C56.8,26 59,28.2 59,31
+            C59,33.8 56.8,36 54,36
+            C51.2,36 49,33.8 49,31
+            C49,28.2 51.2,26 54,26 Z" />
+
+    <!-- Body — cross-legged seated posture -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M54,38
+            C47,38 41,43 40,49
+            L33,49
+            C31.9,49 31,49.9 31,51
+            C31,52.1 31.9,53 33,53
+            L40.5,53
+            C41.2,56 43.5,58.5 47,59.5
+            L47,65
+            L61,65
+            L61,59.5
+            C64.5,58.5 66.8,56 67.5,53
+            L75,53
+            C76.1,53 77,52.1 77,51
+            C77,49.9 76.1,49 75,49
+            L68,49
+            C67,43 61,38 54,38 Z" />
+
+    <!-- Lotus base — two petals -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M44,67
+            C41,67 38,69 38,72
+            C38,73.1 38.9,74 40,74
+            L68,74
+            C69.1,74 70,73.1 70,72
+            C70,69 67,67 64,67
+            Z" />
+
+    <!-- Lotus lower tier — wider -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M40,75
+            C37,75 35,77 35,79
+            C35,80.1 35.9,81 37,81
+            L71,81
+            C72.1,81 73,80.1 73,79
+            C73,77 71,75 68,75
+            Z" />
+
+</vector>

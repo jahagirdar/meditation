@@ -11,6 +11,7 @@ import androidx.health.services.client.data.*
 import com.google.android.gms.wearable.Wearable
 import com.serenity.wear.MainActivity
 import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 
 /**
@@ -185,6 +186,4 @@ class StressMonitorService : Service() {
     }
 }
 
-// Helper extension for Task<T> await
-private suspend fun <T> com.google.android.gms.tasks.Task<T>.await(): T =
-    kotlinx.coroutines.tasks.await()
+// kotlinx.coroutines.tasks.await() is provided by kotlinx-coroutines-play-services

@@ -1,15 +1,19 @@
 package com.serenity.wear.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material.*
 
 // ──────────────────────────────────────────────
@@ -20,12 +24,12 @@ import androidx.wear.compose.material.*
 fun WearTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colors = MaterialTheme.colors.copy(
-            primary            = Color(0xFF5B7FA6),
-            onPrimary          = Color.White,
-            background         = Color(0xFF000000),
-            onBackground       = Color(0xFFE3E1DC),
-            surface            = Color(0xFF1A1C1E),
-            onSurface          = Color(0xFFE3E1DC),
+            primary         = Color(0xFF5B7FA6),
+            onPrimary       = Color.White,
+            background      = Color(0xFF000000),
+            onBackground    = Color(0xFFE3E1DC),
+            surface         = Color(0xFF1A1C1E),
+            onSurface       = Color(0xFFE3E1DC),
         ),
         content = content,
     )
@@ -38,7 +42,7 @@ fun WearTheme(content: @Composable () -> Unit) {
 @Composable
 fun WearMainScreen(
     onStartMonitor: () -> Unit,
-    viewModel: WearViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModel: WearViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -50,7 +54,6 @@ fun WearMainScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 24.dp, horizontal = 12.dp),
     ) {
-        // App name
         item {
             Text(
                 "Serenity",
@@ -63,29 +66,16 @@ fun WearMainScreen(
             )
         }
 
-        // Heart rate
-        item {
-            HeartRateTile(
-                bpm = state.currentHr,
-                isMonitoring = state.isMonitoring,
-            )
-        }
-
-        // Stress level
-        item {
-            StressLevelTile(stressLevel = state.stressLevel)
-        }
-
-        // Status / last nudge
+        item { HeartRateTile(bpm = state.currentHr) }
+        item { StressLevelTile(stressLevel = state.stressLevel) }
         item {
             StatusTile(
-                isMonitoring = state.isMonitoring,
+                isMonitoring     = state.isMonitoring,
                 lastNudgeSentAgo = state.lastNudgeSentAgoMin,
-                onStartMonitor = onStartMonitor,
+                onStartMonitor   = onStartMonitor,
             )
         }
 
-        // Open phone app hint
         item {
             Text(
                 "Open Serenity on your phone to start a session",
@@ -103,7 +93,13 @@ fun WearMainScreen(
 // ──────────────────────────────────────────────
 
 @Composable
-private fun HeartRateTile(bpm: Int?, isMonitoring: Boolean) {
+private fun HeartRateTile(bpm: Int?) {
+    val bpmColor = when {
+        bpm == null -> MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+        bpm > 90    -> Color(0xFFEF5350)
+        bpm > 75    -> Color(0xFFFF9800)
+        else        -> Color(0xFF4CAF50)
+    }
     Chip(
         modifier = Modifier.fillMaxWidth(),
         onClick = {},
@@ -113,12 +109,7 @@ private fun HeartRateTile(bpm: Int?, isMonitoring: Boolean) {
                     text = if (bpm != null) "$bpm bpm" else "—",
                     style = MaterialTheme.typography.title1.copy(fontSize = 22.sp),
                     fontWeight = FontWeight.SemiBold,
-                    color = when {
-                        bpm == null     -> MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                        bpm > 90        -> Color(0xFFEF5350)
-                        bpm > 75        -> Color(0xFFFF9800)
-                        else            -> Color(0xFF4CAF50)
-                    },
+                    color = bpmColor,
                 )
                 Text(
                     "Heart rate",
@@ -127,34 +118,32 @@ private fun HeartRateTile(bpm: Int?, isMonitoring: Boolean) {
                 )
             }
         },
-        icon = {
-            Text("❤️", fontSize = 20.sp)
-        },
-        colors = ChipDefaults.chipColors(
-            backgroundColor = MaterialTheme.colors.surface,
-        ),
+        icon = { Text("❤️", fontSize = 20.sp) },
+        colors = ChipDefaults.chipColors(backgroundColor = MaterialTheme.colors.surface),
     )
 }
 
 // ──────────────────────────────────────────────
-// Stress level tile
+// Stress level tile — uses Canvas progress bar
+// (LinearProgressIndicator is not in Wear Compose)
 // ──────────────────────────────────────────────
 
 @Composable
 private fun StressLevelTile(stressLevel: Float?) {
     val label = when {
-        stressLevel == null      -> "No data"
-        stressLevel >= 0.75f     -> "High"
-        stressLevel >= 0.50f     -> "Moderate"
-        stressLevel >= 0.25f     -> "Low"
-        else                     -> "Calm"
+        stressLevel == null   -> "No data"
+        stressLevel >= 0.75f  -> "High"
+        stressLevel >= 0.50f  -> "Moderate"
+        stressLevel >= 0.25f  -> "Low"
+        else                  -> "Calm"
     }
-    val color = when {
-        stressLevel == null      -> MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
-        stressLevel >= 0.75f     -> Color(0xFFEF5350)
-        stressLevel >= 0.50f     -> Color(0xFFFF9800)
-        else                     -> Color(0xFF4CAF50)
+    val barColor = when {
+        stressLevel == null   -> MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+        stressLevel >= 0.75f  -> Color(0xFFEF5350)
+        stressLevel >= 0.50f  -> Color(0xFFFF9800)
+        else                  -> Color(0xFF4CAF50)
     }
+    val trackColor = MaterialTheme.colors.surface
 
     Chip(
         modifier = Modifier.fillMaxWidth(),
@@ -165,7 +154,7 @@ private fun StressLevelTile(stressLevel: Float?) {
                     label,
                     style = MaterialTheme.typography.title2,
                     fontWeight = FontWeight.SemiBold,
-                    color = color,
+                    color = barColor,
                 )
                 Text(
                     "Stress signal",
@@ -173,21 +162,34 @@ private fun StressLevelTile(stressLevel: Float?) {
                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
                 )
                 if (stressLevel != null) {
-                    Spacer(Modifier.height(4.dp))
-                    LinearProgressIndicator(
-                        progress = stressLevel,
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
-                        color = color,
-                        trackColor = MaterialTheme.colors.surface,
-                        strokeWidth = 3.dp,
-                    )
+                    Spacer(Modifier.height(5.dp))
+                    // Canvas-drawn progress bar (LinearProgressIndicator
+                    // is M3 phone only — not available in Wear Compose)
+                    val progress = stressLevel
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                    ) {
+                        val radius = CornerRadius(size.height / 2)
+                        // Track
+                        drawRoundRect(
+                            color        = trackColor,
+                            size         = size,
+                            cornerRadius = radius,
+                        )
+                        // Fill
+                        drawRoundRect(
+                            color        = barColor,
+                            size         = Size(size.width * progress.coerceIn(0f, 1f), size.height),
+                            cornerRadius = radius,
+                        )
+                    }
                 }
             }
         },
         icon = { Text("🧠", fontSize = 18.sp) },
-        colors = ChipDefaults.chipColors(
-            backgroundColor = MaterialTheme.colors.surface,
-        ),
+        colors = ChipDefaults.chipColors(backgroundColor = MaterialTheme.colors.surface),
     )
 }
 
@@ -212,33 +214,22 @@ private fun StatusTile(
                         style = MaterialTheme.typography.body2,
                         color = Color(0xFF4CAF50),
                     )
-                    if (lastNudgeSentAgo != null) {
-                        Text(
-                            "Last nudge: ${lastNudgeSentAgo}m ago",
-                            style = MaterialTheme.typography.caption2,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
-                        )
-                    } else {
-                        Text(
-                            "Watching for stress signals",
-                            style = MaterialTheme.typography.caption2,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
-                        )
-                    }
+                    Text(
+                        if (lastNudgeSentAgo != null) "Last nudge: ${lastNudgeSentAgo}m ago"
+                        else "Watching for stress signals",
+                        style = MaterialTheme.typography.caption2,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                    )
                 }
             },
             icon = { Text("✅", fontSize = 16.sp) },
-            colors = ChipDefaults.chipColors(
-                backgroundColor = MaterialTheme.colors.surface,
-            ),
+            colors = ChipDefaults.chipColors(backgroundColor = MaterialTheme.colors.surface),
         )
     } else {
         Button(
             onClick = onStartMonitor,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = MaterialTheme.colors.primary,
-            ),
+            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
         ) {
             Text("Enable monitoring", style = MaterialTheme.typography.button)
         }
@@ -257,11 +248,9 @@ data class WearUiState(
 )
 
 class WearViewModel : androidx.lifecycle.ViewModel() {
-
     private val _state = kotlinx.coroutines.flow.MutableStateFlow(WearUiState())
     val state: kotlinx.coroutines.flow.StateFlow<WearUiState> = _state
 
-    /** Called by StressMonitorService to push live readings into the UI */
     fun onHeartRate(bpm: Int, stressLevel: Float) {
         _state.value = _state.value.copy(
             currentHr    = bpm,

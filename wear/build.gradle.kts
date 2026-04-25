@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.health.services.client)
     implementation(libs.coroutines.android)
     implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.coroutines.play.services)
     implementation(libs.core.ktx)
 
     debugImplementation(libs.compose.ui.tooling)

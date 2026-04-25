@@ -90,9 +90,8 @@ class SessionRepository @Inject constructor(
         val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant()
         val todaySec = dao.secondsToday(todayStart.toEpochMilli())
 
-        val allSessions = dao.observeAll()
-        val sessionCount = buckets.sumOf { if (it.secs > 0) 1 else 0 }
-        val avgMin = if (sessionCount > 0) (totalSec / sessionCount) / 60 else 0
+        val sessionCount: Int = buckets.count { it.secs > 0 }
+        val avgMin: Int = if (sessionCount > 0) (totalSec / sessionCount) / 60 else 0
 
         return MeditationStats(
             currentStreak       = currentStreak,
