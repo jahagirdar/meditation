@@ -18,10 +18,23 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        create("release") {
+            // Values read from environment variables so the keystore
+            // is never hard-coded in source control.
+            // Set them in your shell or in GitHub Actions secrets.
+            storeFile     = file(System.getenv("KEYSTORE_PATH") ?: "serenity-release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias      = System.getenv("KEY_ALIAS")         ?: "serenity"
+            keyPassword   = System.getenv("KEY_PASSWORD")      ?: ""
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled   = true
             isShrinkResources = true
+            signingConfig     = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

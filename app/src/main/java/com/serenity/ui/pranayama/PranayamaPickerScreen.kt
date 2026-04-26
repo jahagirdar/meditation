@@ -27,8 +27,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun PranayamaPickerScreen(
     onBack: () -> Unit,
-    onStartSession: () -> Unit,
-    viewModel: PranayamaViewModel = hiltViewModel(),
+    onStartSession: (technique: String, rounds: Int) -> Unit,
+    viewModel: PranayamaViewModel,
 ) {
     val state by viewModel.pickerState.collectAsState()
 
@@ -66,7 +66,7 @@ fun PranayamaPickerScreen(
                         onIncrease = { viewModel.setRounds(state.rounds + 1) },
                     )
                     Button(
-                        onClick = { viewModel.startSession(); onStartSession() },
+                        onClick = { onStartSession(state.selectedTechnique.name, state.rounds) },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                     ) {

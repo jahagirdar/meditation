@@ -35,11 +35,10 @@ import com.serenity.domain.model.*
 fun PranayamaSessionScreen(
     onComplete: (PranayamaSession) -> Unit,
     onExit: () -> Unit,
-    viewModel: PranayamaViewModel = hiltViewModel(),
+    viewModel: PranayamaViewModel,
 ) {
     val sessionState by viewModel.sessionState.collectAsState()
     var showStopDialog by remember { mutableStateOf(false) }
-    // Show Gayatri overlay when a 7-cycle completes mid-session
     var showGayatriOverlay by remember { mutableStateOf(false) }
     var lastCycleSeenAt by remember { mutableStateOf(0) }
 
@@ -58,7 +57,14 @@ fun PranayamaSessionScreen(
         }
     }
 
-    if (sessionState == null) { LaunchedEffect(Unit) { onExit() }; return }
+    // Session is started by the nav before navigating here, so sessionState
+    // should be non-null immediately. Show a spinner for safety rather than exiting.
+    if (sessionState == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     Box(
         modifier = Modifier

@@ -106,9 +106,8 @@ class PranayamaViewModel @Inject constructor(
 
     // ── Session control ───────────────────────
 
-    fun startSession() {
-        val technique = _pickerState.value.selectedTechnique
-        val rounds    = _pickerState.value.rounds
+    fun startSession(techniqueName: String, rounds: Int) {
+        val technique = PranayamaTechnique.valueOf(techniqueName)
         sessionStartedAt = Instant.now()
         roundsCompleted  = 0
 

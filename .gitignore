@@ -19,3 +19,7 @@ local.properties
 # Do NOT ignore:
 # gradle/wrapper/gradle-wrapper.jar  ← needed for CI
 # .github/workflows/                 ← needed for CI
+
+# Signing keystores — NEVER commit these
+*.jks
+*.keystore

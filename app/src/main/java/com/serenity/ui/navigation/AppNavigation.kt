@@ -5,6 +5,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.*
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.*
 import com.serenity.data.preferences.UserPreferencesRepository
 import com.serenity.domain.model.*
@@ -15,6 +17,7 @@ import com.serenity.ui.onboarding.OnboardingScreen
 import com.serenity.ui.pranayama.PranayamaCompleteScreen
 import com.serenity.ui.pranayama.PranayamaPickerScreen
 import com.serenity.ui.pranayama.PranayamaSessionScreen
+import com.serenity.ui.pranayama.PranayamaViewModel
 import com.serenity.ui.session.SessionCompleteSheet
 import com.serenity.ui.session.SessionScreen
 import com.serenity.ui.settings.SettingsScreen
@@ -113,24 +116,47 @@ fun AppNavigation(
         composable(Screen.Settings.route)   { SettingsScreen(onBack  = { navController.popBackStack() }) }
         composable(Screen.Assessment.route) { AssessmentScreen(onBack = { navController.popBackStack() }) }
 
-        // ── Pranayama ──────────────────────────────────────────────────
-        composable(Screen.PranayamaPicker.route) {
-            PranayamaPickerScreen(
-                onBack         = { navController.popBackStack() },
-                onStartSession = { navController.navigate(Screen.PranayamaSession.route) },
-            )
-        }
+        // ── Pranayama — nested graph so picker+session share one ViewModel ──
+        navigation(
+            startDestination = Screen.PranayamaPicker.route,
+            route            = "pranayama_graph",
+        ) {
+            composable(Screen.PranayamaPicker.route) { backStackEntry ->
+                // Scope ViewModel to the nested graph — same instance for all pranayama screens
+                val graphEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry("pranayama_graph")
+                }
+                val pranayamaViewModel: PranayamaViewModel = hiltViewModel(graphEntry)
 
-        composable(Screen.PranayamaSession.route) {
-            PranayamaSessionScreen(
-                onComplete = { session ->
-                    completedPranayamaSession = session
-                    navController.navigate(Screen.PranayamaComplete.route) {
-                        popUpTo(Screen.PranayamaSession.route) { inclusive = true }
-                    }
-                },
-                onExit = { navController.popBackStack() },
-            )
+                PranayamaPickerScreen(
+                    onBack         = { navController.popBackStack() },
+                    onStartSession = { technique, rounds ->
+                        // startSession on the shared VM BEFORE navigating
+                        // so sessionState is non-null when SessionScreen composes
+                        pranayamaViewModel.startSession(technique, rounds)
+                        navController.navigate(Screen.PranayamaSession.route)
+                    },
+                    viewModel = pranayamaViewModel,
+                )
+            }
+
+            composable(Screen.PranayamaSession.route) { backStackEntry ->
+                val graphEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry("pranayama_graph")
+                }
+                val pranayamaViewModel: PranayamaViewModel = hiltViewModel(graphEntry)
+
+                PranayamaSessionScreen(
+                    onComplete = { session ->
+                        completedPranayamaSession = session
+                        navController.navigate(Screen.PranayamaComplete.route) {
+                            popUpTo(Screen.PranayamaSession.route) { inclusive = true }
+                        }
+                    },
+                    onExit    = { navController.popBackStack() },
+                    viewModel = pranayamaViewModel,
+                )
+            }
         }
 
         composable(Screen.PranayamaComplete.route) {
