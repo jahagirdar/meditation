@@ -22,6 +22,7 @@ import com.serenity.ui.theme.AccentColours
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateAudio: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val prefs by viewModel.prefs.collectAsState()
@@ -129,6 +130,27 @@ fun SettingsScreen(
                 checked = prefs.stressNudgeEnabled,
                 onToggle = { viewModel.setStressNudge(it) },
             )
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // ── Audio ──
+            SettingsSectionHeader("Audio")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Sounds & audio files",
+                        style = MaterialTheme.typography.bodyLarge)
+                    Text("Missing files, fallback sounds, custom ambient",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onNavigateAudio) {
+                    Icon(Icons.Default.ChevronRight, "Audio settings")
+                }
+            }
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 

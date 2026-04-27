@@ -13,10 +13,12 @@ import com.serenity.domain.model.*
 import com.serenity.ui.session.ActivePresetHolder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import android.net.Uri
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
@@ -43,12 +45,17 @@ object TimerStateHolder {
 class MeditationTimerService : Service() {
 
     @Inject lateinit var sessionRepository: SessionRepository
+    @Inject lateinit var audioMgr: SerenityAudioManager
+    @Inject lateinit var prefsRepo: com.serenity.data.preferences.UserPreferencesRepository
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var timerJob: Job? = null
     private var soundPool: SoundPool? = null
     private var mediaPlayer: MediaPlayer? = null
     private val soundIds = mutableMapOf<BellSound, Int>()
+    private var useFallbackBell   = true
+    private var customAmbientUri: Uri? = null
+    private var useCustomAmbient  = false
     private var currentPreset: Preset? = null
     private var sessionStartedAt: Instant = Instant.now()
     private var sessionId: UUID = UUID.randomUUID()
@@ -78,6 +85,14 @@ class MeditationTimerService : Service() {
             TimerActions.START -> {
                 val preset = ActivePresetHolder.preset
                 if (preset != null) {
+                    // Read latest prefs synchronously before starting
+                    kotlinx.coroutines.runBlocking {
+                        prefsRepo.preferences.first().let { p ->
+                            useFallbackBell  = p.useFallbackBell
+                            useCustomAmbient = p.useCustomAmbient
+                            customAmbientUri = p.customAmbientUri?.let { Uri.parse(it) }
+                        }
+                    }
                     currentPreset    = preset
                     sessionId        = UUID.randomUUID()
                     sessionStartedAt = Instant.now()
@@ -216,22 +231,27 @@ class MeditationTimerService : Service() {
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).build()
         BellSound.entries.filter { it != BellSound.SILENT }.forEach { bell ->
-            val id = resources.getIdentifier(bell.rawRes, "raw", packageName)
-            if (id != 0) soundIds[bell] = soundPool!!.load(this, id, 1)
+            val id = audioMgr.loadBell(soundPool!!, bell.rawRes)
+            if (id != 0) soundIds[bell] = id
         }
     }
 
     private fun playBell(bell: BellSound, silent: Boolean, pattern: VibPattern) {
         if (silent || bell == BellSound.SILENT) { vibrate(pattern); return }
-        soundIds[bell]?.let { soundPool?.play(it, 1f, 1f, 1, 0, 1f) }
+        val id = soundIds[bell]
+        if (id != null && id != 0) {
+            soundPool?.play(id, 1f, 1f, 1, 0, 1f)
+        } else if (useFallbackBell) {
+            audioMgr.playFallbackBell()
+        }
+        vibrate(pattern)
     }
 
     private fun startAmbient(sound: AmbientSound) {
-        val id = resources.getIdentifier(sound.rawRes, "raw", packageName)
-        if (id == 0) return
         mediaPlayer?.release()
-        mediaPlayer = MediaPlayer.create(this, id)?.apply {
-            isLooping = true; setVolume(0f, 0f); start()
+        val uri = if (useCustomAmbient) customAmbientUri else null
+        mediaPlayer = audioMgr.createAmbientPlayer(sound, uri)?.apply {
+            setVolume(0f, 0f); start()
             scope.launch { repeat(30) { i -> setVolume(i / 30f, i / 30f); delay(100) } }
         }
     }

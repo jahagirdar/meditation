@@ -20,6 +20,7 @@ import com.serenity.ui.pranayama.PranayamaSessionScreen
 import com.serenity.ui.pranayama.PranayamaViewModel
 import com.serenity.ui.session.SessionCompleteSheet
 import com.serenity.ui.session.SessionScreen
+import com.serenity.ui.settings.AudioSettingsScreen
 import com.serenity.ui.settings.SettingsScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -35,6 +36,7 @@ sealed class Screen(val route: String) {
     object PranayamaPicker     : Screen("pranayama_picker")
     object PranayamaSession    : Screen("pranayama_session")
     object PranayamaComplete   : Screen("pranayama_complete")
+    object AudioSettings       : Screen("audio_settings")
 }
 
 @HiltViewModel

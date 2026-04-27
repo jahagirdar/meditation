@@ -16,6 +16,11 @@
 
     <!-- Gallery background -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- For picking ambient audio from device storage (API 33+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Fallback for API < 33 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <!-- WearOS data layer -->
     <uses-permission android:name="android.permission.BLUETOOTH" />

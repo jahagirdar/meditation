@@ -47,6 +47,8 @@ private data class PranayamaSounds(
 class PranayamaViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repo: PranayamaRepository,
+    private val audioMgr: com.serenity.service.SerenityAudioManager,
+    private val prefsRepo: com.serenity.data.preferences.UserPreferencesRepository,
 ) : ViewModel() {
 
     // ── Picker state ─────────────────────────
@@ -68,6 +70,7 @@ class PranayamaViewModel @Inject constructor(
     // Audio
     private var soundPool: SoundPool? = null
     private var sounds = PranayamaSounds()
+    private var useFallbackBell = true
 
     // Vibrator
     private val vibrator: Vibrator by lazy {
@@ -91,6 +94,9 @@ class PranayamaViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            prefsRepo.preferences.collect { p -> useFallbackBell = p.useFallbackBell }
+        }
         initAudio()
     }
 
@@ -107,18 +113,21 @@ class PranayamaViewModel @Inject constructor(
     // ── Session control ───────────────────────
 
     fun startSession(techniqueName: String, rounds: Int) {
-        val technique = PranayamaTechnique.valueOf(techniqueName)
+        val technique = runCatching { PranayamaTechnique.valueOf(techniqueName) }
+            .getOrNull() ?: PranayamaTechnique.BOX_BREATHING
+        val safeRounds = rounds.coerceAtLeast(1)
+        val firstPhase = technique.phases.firstOrNull() ?: return  // no phases = nothing to do
         sessionStartedAt = Instant.now()
         roundsCompleted  = 0
 
         _sessionState.value = PranayamaSessionState(
             technique         = technique,
             currentRound      = 1,
-            totalRounds       = rounds,
+            totalRounds       = safeRounds,
             currentPhaseIndex = 0,
-            phaseRemainingSec = technique.phases[0].durationSec,
+            phaseRemainingSec = firstPhase.durationSec,
         )
-        runSession(technique, rounds)
+        runSession(technique, safeRounds)
     }
 
     fun pauseSession() {
@@ -320,8 +329,11 @@ class PranayamaViewModel @Inject constructor(
     // ── Audio helpers ─────────────────────────
 
     private fun playSound(soundId: Int, volume: Float = 1.0f) {
-        if (soundId == 0) return      // asset not found — silent fallback
-        soundPool?.play(soundId, volume, volume, 1, 0, 1f)
+        if (soundId != 0) {
+            soundPool?.play(soundId, volume, volume, 1, 0, 1f)
+        } else if (useFallbackBell) {
+            audioMgr.playFallbackBell(volume)
+        }
     }
 
     private fun initAudio() {
@@ -334,18 +346,13 @@ class PranayamaViewModel @Inject constructor(
                     .build()
             ).build()
 
-        fun load(name: String): Int {
-            val id = context.resources.getIdentifier(name, "raw", context.packageName)
-            return if (id != 0) soundPool!!.load(context, id, 1) else 0
-        }
-
         sounds = PranayamaSounds(
-            inhale     = load("prana_inhale"),
-            hold       = load("prana_hold"),
-            exhale     = load("prana_exhale"),
-            roundEnd   = load("prana_round_complete"),
-            om         = load("prana_om"),
-            sessionEnd = load("prana_session_end"),
+            inhale     = audioMgr.loadPranayamaCue(soundPool!!, "prana_inhale"),
+            hold       = audioMgr.loadPranayamaCue(soundPool!!, "prana_hold"),
+            exhale     = audioMgr.loadPranayamaCue(soundPool!!, "prana_exhale"),
+            roundEnd   = audioMgr.loadPranayamaCue(soundPool!!, "prana_round_complete"),
+            om         = audioMgr.loadPranayamaCue(soundPool!!, "prana_om"),
+            sessionEnd = audioMgr.loadPranayamaCue(soundPool!!, "prana_session_end"),
         )
     }
 

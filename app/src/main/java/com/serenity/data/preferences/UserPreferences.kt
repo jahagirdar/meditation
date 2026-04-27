@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
@@ -27,6 +28,10 @@ data class AppPreferences(
     val reminder3Time: String? = null,
     val stressNudgeEnabled: Boolean = true,
     val dimScreenAfterSec: Int = 30,
+    // Audio settings
+    val useFallbackBell: Boolean = true,
+    val useCustomAmbient: Boolean = false,
+    val customAmbientUri: String? = null,
 )
 
 @Singleton
@@ -46,6 +51,9 @@ class UserPreferencesRepository @Inject constructor(
         val REMINDER_3          = stringPreferencesKey("reminder_3")
         val STRESS_NUDGE        = booleanPreferencesKey("stress_nudge_enabled")
         val DIM_SCREEN_SEC      = intPreferencesKey("dim_screen_sec")
+        val FALLBACK_BELL       = booleanPreferencesKey("fallback_bell")
+        val USE_CUSTOM_AMBIENT  = booleanPreferencesKey("use_custom_ambient")
+        val CUSTOM_AMBIENT_URI  = stringPreferencesKey("custom_ambient_uri")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data
@@ -64,6 +72,9 @@ class UserPreferencesRepository @Inject constructor(
                 reminder3Time     = p[Keys.REMINDER_3],
                 stressNudgeEnabled = p[Keys.STRESS_NUDGE] ?: true,
                 dimScreenAfterSec = p[Keys.DIM_SCREEN_SEC] ?: 30,
+                useFallbackBell   = p[Keys.FALLBACK_BELL] ?: true,
+                useCustomAmbient  = p[Keys.USE_CUSTOM_AMBIENT] ?: false,
+                customAmbientUri  = p[Keys.CUSTOM_AMBIENT_URI],
             )
         }
 
@@ -99,6 +110,10 @@ class UserPreferencesRepository @Inject constructor(
                 ?: prefs.remove(Keys.REMINDER_3)
             prefs[Keys.STRESS_NUDGE]     = updated.stressNudgeEnabled
             prefs[Keys.DIM_SCREEN_SEC]   = updated.dimScreenAfterSec
+            prefs[Keys.FALLBACK_BELL]    = updated.useFallbackBell
+            prefs[Keys.USE_CUSTOM_AMBIENT] = updated.useCustomAmbient
+            updated.customAmbientUri?.let { prefs[Keys.CUSTOM_AMBIENT_URI] = it }
+                ?: prefs.remove(Keys.CUSTOM_AMBIENT_URI)
         }
     }
 }
