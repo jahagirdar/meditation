@@ -16,7 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.serenity.crash.CrashHandler
 import com.serenity.domain.model.*
 import com.serenity.ui.components.PresetCard
 import com.serenity.ui.components.TimerConfigSheet
@@ -31,7 +33,9 @@ fun HomeScreen(
     onNavigatePranayama: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state    by viewModel.state.collectAsState()
+    val context  = LocalContext.current
+    val hasCrash = remember { CrashHandler.hasUnreadReport(context) }
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showConfigSheet by remember { mutableStateOf(false) }
 
@@ -43,8 +47,16 @@ fun HomeScreen(
                     IconButton(onClick = onNavigateHistory) {
                         Icon(Icons.Default.BarChart, "History")
                     }
-                    IconButton(onClick = onNavigateSettings) {
-                        Icon(Icons.Default.Settings, "Settings")
+                    BadgedBox(
+                        badge = {
+                            if (hasCrash) Badge(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    ) {
+                        IconButton(onClick = onNavigateSettings) {
+                            Icon(Icons.Default.Settings, "Settings")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

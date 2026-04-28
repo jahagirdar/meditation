@@ -20,6 +20,8 @@ import com.serenity.ui.pranayama.PranayamaSessionScreen
 import com.serenity.ui.pranayama.PranayamaViewModel
 import com.serenity.ui.session.SessionCompleteSheet
 import com.serenity.ui.session.SessionScreen
+import com.serenity.crash.CrashHandler
+import com.serenity.crash.CrashReportScreen
 import com.serenity.ui.settings.AudioSettingsScreen
 import com.serenity.ui.settings.SettingsScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +39,7 @@ sealed class Screen(val route: String) {
     object PranayamaSession    : Screen("pranayama_session")
     object PranayamaComplete   : Screen("pranayama_complete")
     object AudioSettings       : Screen("audio_settings")
+    object CrashReport         : Screen("crash_report")
 }
 
 @HiltViewModel
@@ -114,9 +117,29 @@ fun AppNavigation(
             }
         }
 
-        composable(Screen.History.route)    { HistoryScreen(onBack   = { navController.popBackStack() }) }
-        composable(Screen.Settings.route)   { SettingsScreen(onBack  = { navController.popBackStack() }) }
-        composable(Screen.Assessment.route) { AssessmentScreen(onBack = { navController.popBackStack() }) }
+        composable(Screen.History.route) {
+            HistoryScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onBack                = { navController.popBackStack() },
+                onNavigateAudio       = { navController.navigate(Screen.AudioSettings.route) },
+                onNavigateCrashReport = { navController.navigate(Screen.CrashReport.route) },
+            )
+        }
+
+        composable(Screen.Assessment.route) {
+            AssessmentScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.AudioSettings.route) {
+            AudioSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.CrashReport.route) {
+            CrashReportScreen(onBack = { navController.popBackStack() })
+        }
 
         // ── Pranayama — nested graph so picker+session share one ViewModel ──
         navigation(

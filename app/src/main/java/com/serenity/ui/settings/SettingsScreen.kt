@@ -10,12 +10,14 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.serenity.crash.CrashHandler
 import com.serenity.ui.theme.AccentColours
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,9 +25,12 @@ import com.serenity.ui.theme.AccentColours
 fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateAudio: () -> Unit = {},
+    onNavigateCrashReport: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val prefs by viewModel.prefs.collectAsState()
+    val prefs   by viewModel.prefs.collectAsState()
+    val context = LocalContext.current
+    val hasCrash = remember { CrashHandler.hasUnreadReport(context) }
 
     Scaffold(
         topBar = {
@@ -149,6 +154,58 @@ fun SettingsScreen(
                 }
                 IconButton(onClick = onNavigateAudio) {
                     Icon(Icons.Default.ChevronRight, "Audio settings")
+                }
+            }
+
+            // ── Crash reports ──
+            if (hasCrash) {
+                Spacer(Modifier.height(4.dp))
+                Card(
+                    onClick = onNavigateCrashReport,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                Icons.Default.BugReport,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Column {
+                                Text(
+                                    "Crash report available",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    "Tap to view and copy the log",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = "View crash report",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
 
