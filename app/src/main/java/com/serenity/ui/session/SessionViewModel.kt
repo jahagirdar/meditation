@@ -13,6 +13,7 @@ import com.serenity.service.TimerStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 @HiltViewModel
@@ -29,6 +30,9 @@ class SessionViewModel @Inject constructor(
     private val _breathingEnabled = MutableStateFlow(true)
     val breathingEnabled: StateFlow<Boolean> = _breathingEnabled.asStateFlow()
 
+    private val _completionStreak = MutableStateFlow(0)
+    val completionStreak: StateFlow<Int> = _completionStreak.asStateFlow()
+
     private var currentPreset: Preset? = null
 
     init {
@@ -38,11 +42,24 @@ class SessionViewModel @Inject constructor(
                 _breathingEnabled.value = prefs.breathingAnimation
             }
         }
+        viewModelScope.launch {
+            combine(TimerStateHolder.state, prefsRepo.preferences) { state, prefs ->
+                state to prefs.dailyGoalMinutes
+            }.collect { (state, goalMinutes) ->
+                if (state is TimerState.Completed) {
+                    _completionStreak.value = sessionRepo.computeStats(goalMinutes).currentStreak
+                }
+            }
+        }
     }
 
     fun startSession(preset: Preset, context: Context) {
+        // If the service is already running (e.g. after a config change), don't restart it
+        if (timerState.value !is TimerState.Idle) {
+            currentPreset = preset
+            return
+        }
         currentPreset = preset
-        // Register preset with service via a static holder
         ActivePresetHolder.preset = preset
         val intent = Intent(context, MeditationTimerService::class.java).apply {
             action = TimerActions.START

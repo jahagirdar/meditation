@@ -18,10 +18,13 @@ import com.serenity.ui.pranayama.PranayamaCompleteScreen
 import com.serenity.ui.pranayama.PranayamaPickerScreen
 import com.serenity.ui.pranayama.PranayamaSessionScreen
 import com.serenity.ui.pranayama.PranayamaViewModel
+import com.serenity.ui.session.ActivePresetHolder
 import com.serenity.ui.session.SessionCompleteSheet
 import com.serenity.ui.session.SessionScreen
+import com.serenity.ui.session.SessionViewModel
 import com.serenity.crash.CrashHandler
 import com.serenity.crash.CrashReportScreen
+import com.serenity.service.TimerStateHolder
 import com.serenity.ui.settings.AudioSettingsScreen
 import com.serenity.ui.settings.SettingsScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,13 +62,30 @@ fun AppNavigation(
 ) {
     val navController               = rememberNavController()
     val navViewModel: NavViewModel  = hiltViewModel()
+    val sessionViewModel: SessionViewModel = hiltViewModel()
 
     var pendingPreset               by remember { mutableStateOf<Preset?>(null) }
     var completedSec                by remember { mutableStateOf<Int?>(null) }
     var showCompletionSheet         by remember { mutableStateOf(false) }
     var completedPranayamaSession   by remember { mutableStateOf<com.serenity.domain.model.PranayamaSession?>(null) }
 
+    val completionStreak by sessionViewModel.completionStreak.collectAsState()
+
     val startDest = if (onboardingComplete) Screen.Home.route else Screen.Onboarding.route
+
+    // On startup: if a session is already running (e.g. after config change or notification relaunch),
+    // restore the preset and navigate back to the session screen.
+    LaunchedEffect(Unit) {
+        if (TimerStateHolder.state.value !is TimerState.Idle && pendingPreset == null) {
+            val saved = ActivePresetHolder.preset
+            if (saved != null) {
+                pendingPreset = saved
+                if (navController.currentDestination?.route != Screen.Session.route) {
+                    navController.navigate(Screen.Session.route)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(deepLink) {
         if (deepLink == "calm_start") {
@@ -105,10 +125,14 @@ fun AppNavigation(
         }
 
         composable(Screen.Session.route) {
-            val preset = pendingPreset
-            if (preset != null) {
+            // Recover preset after config change or notification relaunch when service is still running
+            val effectivePreset = pendingPreset
+                ?: if (TimerStateHolder.state.value !is TimerState.Idle) ActivePresetHolder.preset else null
+            if (pendingPreset == null && effectivePreset != null) pendingPreset = effectivePreset
+
+            if (effectivePreset != null) {
                 SessionScreen(
-                    preset     = preset,
+                    preset     = effectivePreset,
                     onComplete = { actual -> completedSec = actual; showCompletionSheet = true },
                     onExit     = { navController.popBackStack() },
                 )
@@ -203,7 +227,7 @@ fun AppNavigation(
     if (showCompletionSheet && completedSec != null) {
         SessionCompleteSheet(
             actualSec = completedSec!!,
-            streak    = 0,
+            streak    = completionStreak,
             onDone    = { _ -> showCompletionSheet = false; navController.popBackStack(Screen.Home.route, false) },
         )
     }

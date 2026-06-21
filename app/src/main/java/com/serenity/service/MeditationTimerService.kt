@@ -53,9 +53,10 @@ class MeditationTimerService : Service() {
     private var soundPool: SoundPool? = null
     private var mediaPlayer: MediaPlayer? = null
     private val soundIds = mutableMapOf<BellSound, Int>()
-    private var useFallbackBell   = true
+    private var useFallbackBell       = true
     private var customAmbientUri: Uri? = null
-    private var useCustomAmbient  = false
+    private var useCustomAmbient      = false
+    private var customFallbackBellUri: Uri? = null
     private var currentPreset: Preset? = null
     private var sessionStartedAt: Instant = Instant.now()
     private var sessionId: UUID = UUID.randomUUID()
@@ -88,9 +89,10 @@ class MeditationTimerService : Service() {
                     // Read latest prefs synchronously before starting
                     kotlinx.coroutines.runBlocking {
                         prefsRepo.preferences.first().let { p ->
-                            useFallbackBell  = p.useFallbackBell
-                            useCustomAmbient = p.useCustomAmbient
-                            customAmbientUri = p.customAmbientUri?.let { Uri.parse(it) }
+                            useFallbackBell       = p.useFallbackBell
+                            useCustomAmbient      = p.useCustomAmbient
+                            customAmbientUri      = p.customAmbientUri?.let { Uri.parse(it) }
+                            customFallbackBellUri = p.customFallbackBellUri?.let { Uri.parse(it) }
                         }
                     }
                     currentPreset    = preset
@@ -153,6 +155,7 @@ class MeditationTimerService : Service() {
             }
 
             playBell(preset.endBell, preset.silentMode, VibPattern.END)
+            delay(4_000L)
             fadeOutAmbient()
             val endedAt = Instant.now()
             sessionRepository.save(Session(
@@ -180,11 +183,18 @@ class MeditationTimerService : Service() {
     private fun resumeTimer() {
         val paused = TimerStateHolder.state.value as? TimerState.Paused ?: return
         val preset = currentPreset ?: return
-        mediaPlayer?.start(); timerJob?.cancel()
+        mediaPlayer?.start()
+        timerJob?.cancel()
         timerJob = scope.launch {
+            val allPhases = buildPhases(preset)
+            val currentPhaseIdx = allPhases.indexOfFirst { it.timerPhase == paused.phase }
+
+            // Resume the paused phase
             var remaining = paused.remainingSec
             while (remaining > 0) {
-                TimerStateHolder.emit(TimerState.Running(paused.phase, remaining, paused.totalSec, paused.totalSec - remaining))
+                TimerStateHolder.emit(
+                    TimerState.Running(paused.phase, remaining, paused.totalSec, paused.totalSec - remaining)
+                )
                 updateNotification(remaining)
                 delay(1_000L); remaining--
                 if (paused.phase == TimerPhase.MEDITATION) {
@@ -194,14 +204,53 @@ class MeditationTimerService : Service() {
                         playBell(preset.intervalBell, preset.silentMode, VibPattern.INTERVAL)
                 }
             }
-            playBell(preset.endBell, preset.silentMode, VibPattern.END); fadeOutAmbient()
-            TimerStateHolder.emit(TimerState.Completed(paused.totalSec - paused.remainingSec))
+
+            // Continue any remaining phases
+            for (i in (currentPhaseIdx + 1) until allPhases.size) {
+                val phase = allPhases[i]
+                when (phase.timerPhase) {
+                    TimerPhase.WARMUP     -> Unit
+                    TimerPhase.MEDITATION -> playBell(preset.startBell, preset.silentMode, VibPattern.START)
+                    TimerPhase.COOLDOWN   -> playBell(preset.intervalBell, preset.silentMode, VibPattern.INTERVAL)
+                }
+                var rem = phase.durationSec
+                var elapsed = 0
+                while (rem > 0) {
+                    TimerStateHolder.emit(TimerState.Running(phase.timerPhase, rem, phase.durationSec, elapsed))
+                    updateNotification(rem)
+                    delay(1_000L); rem--; elapsed++
+                    if (phase.timerPhase == TimerPhase.MEDITATION) {
+                        val intervalSec = preset.intervalOption?.seconds
+                        if (intervalSec != null && elapsed > 0 && elapsed % intervalSec == 0 && rem > 0)
+                            playBell(preset.intervalBell, preset.silentMode, VibPattern.INTERVAL)
+                    }
+                }
+            }
+
+            playBell(preset.endBell, preset.silentMode, VibPattern.END)
+            delay(4_000L)
+            fadeOutAmbient()
+            val endedAt = Instant.now()
+            sessionRepository.save(
+                Session(
+                    id = sessionId, startedAt = sessionStartedAt, endedAt = endedAt,
+                    plannedDurationSec = preset.durationSec,
+                    actualDurationSec  = (endedAt.epochSecond - sessionStartedAt.epochSecond).toInt(),
+                    presetName  = preset.name.ifBlank { null },
+                    warmupSec   = preset.warmupSec, cooldownSec = preset.cooldownSec,
+                    intervalSec = preset.intervalOption?.seconds,
+                    bellSound   = preset.startBell.name, ambientSound = preset.ambientSound.name,
+                    silentMode  = preset.silentMode,
+                )
+            )
+            TimerStateHolder.emit(TimerState.Completed((endedAt.epochSecond - sessionStartedAt.epochSecond).toInt()))
             stopForeground(STOP_FOREGROUND_REMOVE); stopSelf()
         }
     }
 
     private fun stopTimer(earlyStop: Boolean) {
-        timerJob?.cancel(); fadeOutAmbient()
+        timerJob?.cancel()
+        scope.launch { fadeOutAmbient() }
         if (earlyStop) {
             val elapsed = when (val s = TimerStateHolder.state.value) {
                 is TimerState.Running -> s.elapsedSec
@@ -242,7 +291,7 @@ class MeditationTimerService : Service() {
         if (id != null && id != 0) {
             soundPool?.play(id, 1f, 1f, 1, 0, 1f)
         } else if (useFallbackBell) {
-            audioMgr.playFallbackBell()
+            audioMgr.playFallbackBell(customUri = customFallbackBellUri)
         }
         vibrate(pattern)
     }
@@ -256,12 +305,10 @@ class MeditationTimerService : Service() {
         }
     }
 
-    private fun fadeOutAmbient() {
+    private suspend fun fadeOutAmbient() {
         val mp = mediaPlayer ?: return
-        scope.launch {
-            repeat(30) { i -> mp.setVolume(1f - i / 30f, 1f - i / 30f); delay(100) }
-            mp.stop(); mp.release(); mediaPlayer = null
-        }
+        repeat(30) { i -> mp.setVolume(1f - i / 30f, 1f - i / 30f); delay(100) }
+        mp.stop(); mp.release(); mediaPlayer = null
     }
 
     // ── Haptics ──

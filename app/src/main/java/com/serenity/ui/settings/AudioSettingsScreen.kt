@@ -1,7 +1,9 @@
 package com.serenity.ui.settings
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,11 +43,23 @@ fun AudioSettingsScreen(
         if (granted) viewModel.onAudioPermissionGranted()
     }
 
-    // ── Audio file picker (content URI) ──
+    // ── Audio file picker for ambient (content URI) ──
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) viewModel.setCustomAmbientUri(uri)
+    }
+
+    // ── System ringtone picker for bell sound ──
+    val ringtonePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val uri = result.data
+                ?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            viewModel.setCustomFallbackBellUri(uri)
+        }
     }
 
     Scaffold(
@@ -79,6 +93,76 @@ fun AudioSettingsScreen(
                 )
             } else {
                 AllFilesOkBanner()
+            }
+
+            Divider()
+
+            // ── Bell sound picker ────────────────────────────────────────
+            Text(
+                "Bell sound",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Pick any notification or ringtone from your device to use when built-in bell files are missing.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            BellSoundPickerCard(
+                currentName = state.customFallbackBellName,
+                onPick = {
+                    val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                        putExtra(
+                            RingtoneManager.EXTRA_RINGTONE_TYPE,
+                            RingtoneManager.TYPE_NOTIFICATION or RingtoneManager.TYPE_RINGTONE,
+                        )
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select bell sound")
+                        state.customFallbackBellUri?.let {
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, it)
+                        }
+                    }
+                    ringtonePicker.launch(intent)
+                },
+                onReset = { viewModel.setCustomFallbackBellUri(null) },
+            )
+
+            Divider()
+
+            // ── Pranayama vyahriti timing ────────────────────────────────
+            Text(
+                "Pranayama — vyahriti timing",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Choose when the vyahriti chant plays relative to each breath cycle.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FilterChip(
+                    selected = state.vyahritiBeforeBreath,
+                    onClick  = { viewModel.setVyahritiBeforeBreath(true) },
+                    label    = { Text("Before breath") },
+                    leadingIcon = {
+                        if (state.vyahritiBeforeBreath)
+                            Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                FilterChip(
+                    selected = !state.vyahritiBeforeBreath,
+                    onClick  = { viewModel.setVyahritiBeforeBreath(false) },
+                    label    = { Text("Alongside breath") },
+                    leadingIcon = {
+                        if (!state.vyahritiBeforeBreath)
+                            Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                        else
+                            Icon(Icons.Default.GraphicEq, null, modifier = Modifier.size(16.dp))
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             Divider()
@@ -350,6 +434,63 @@ private fun CustomAmbientCard(
                         contentPadding = PaddingValues(horizontal = 8.dp),
                     ) {
                         Text("Clear", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────
+// Bell sound picker card
+// ──────────────────────────────────────────────
+
+@Composable
+private fun BellSoundPickerCard(
+    currentName: String?,
+    onPick: () -> Unit,
+    onReset: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        ),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    currentName ?: "System default",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                )
+                Text(
+                    "Used for missing bell sounds",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = onPick, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    Text("Change")
+                }
+                if (currentName != null) {
+                    TextButton(
+                        onClick = onReset,
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Text("Reset", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }

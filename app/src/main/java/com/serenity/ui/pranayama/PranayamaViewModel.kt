@@ -37,6 +37,8 @@ private data class PranayamaSounds(
     val roundEnd: Int  = 0,   // round-complete bell — prana_round_complete.mp3
     val om: Int        = 0,   // Om chant          — prana_om.mp3
     val sessionEnd: Int = 0,  // session complete  — prana_session_end.mp3
+    val vyahritis: Map<Vyahriti, Int> = emptyMap(),  // prana_vyahriti_<name>.mp3
+    val gayatri: Int   = 0,   // prana_gayatri.mp3
 )
 
 // ──────────────────────────────────────────────
@@ -71,6 +73,8 @@ class PranayamaViewModel @Inject constructor(
     private var soundPool: SoundPool? = null
     private var sounds = PranayamaSounds()
     private var useFallbackBell = true
+    private var customFallbackBellUri: android.net.Uri? = null
+    private var vyahritiBeforeBreath = true
 
     // Vibrator
     private val vibrator: Vibrator by lazy {
@@ -95,7 +99,11 @@ class PranayamaViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            prefsRepo.preferences.collect { p -> useFallbackBell = p.useFallbackBell }
+            prefsRepo.preferences.collect { p ->
+                useFallbackBell       = p.useFallbackBell
+                customFallbackBellUri = p.customFallbackBellUri?.let { android.net.Uri.parse(it) }
+                vyahritiBeforeBreath  = p.vyahritiBeforeBreath
+            }
         }
         initAudio()
     }
@@ -164,6 +172,9 @@ class PranayamaViewModel @Inject constructor(
         sessionJob?.cancel()
         sessionJob = viewModelScope.launch {
             for (round in 1..totalRounds) {
+                // Announce vyahriti (and Gayatri on multiples of 7) before breath phases
+                announceRound(round)
+
                 technique.phases.forEachIndexed { phaseIndex, phaseSpec ->
                     // Play phase-start cue
                     playCueForPhase(phaseSpec.phase, technique)
@@ -245,6 +256,7 @@ class PranayamaViewModel @Inject constructor(
 
             // Remaining rounds
             for (round in (s.currentRound + 1)..totalRounds) {
+                announceRound(round)
                 phases.forEachIndexed { phaseIndex, phaseSpec ->
                     playCueForPhase(phaseSpec.phase, technique)
                     var rem = phaseSpec.durationSec
@@ -271,6 +283,30 @@ class PranayamaViewModel @Inject constructor(
             repo.save(record)
             _sessionState.update { it?.copy(isComplete = true) }
             _sessionComplete.emit(record)
+        }
+    }
+
+    // ── Round announcement (vyahriti + optional Gayatri) ─────
+
+    /**
+     * Plays the vyahriti for the given round.
+     * In "before" mode: plays the chant and waits for it to finish before the caller starts
+     * the breath phases.  In "alongside" mode: fires the sound and returns immediately so the
+     * breath phase starts concurrently.
+     *
+     * When round % 7 == 0 the Gayatri mantra is played after the vyahriti (always blocking,
+     * regardless of mode, so the mantra finishes before the next inhale cue).
+     */
+    private suspend fun announceRound(round: Int) {
+        val vyahriti = Vyahriti.forRound(round)
+        playSound(sounds.vyahritis[vyahriti] ?: 0)
+        if (vyahritiBeforeBreath) {
+            // 2 s covers the ~1.3 s chant + a natural pause
+            delay(2_000L)
+        }
+        if (round % 7 == 0) {
+            playSound(sounds.gayatri)
+            delay(8_000L)  // 6.4 s audio + breathing room
         }
     }
 
@@ -332,7 +368,7 @@ class PranayamaViewModel @Inject constructor(
         if (soundId != 0) {
             soundPool?.play(soundId, volume, volume, 1, 0, 1f)
         } else if (useFallbackBell) {
-            audioMgr.playFallbackBell(volume)
+            audioMgr.playFallbackBell(volume, customFallbackBellUri)
         }
     }
 
@@ -353,6 +389,10 @@ class PranayamaViewModel @Inject constructor(
             roundEnd   = audioMgr.loadPranayamaCue(soundPool!!, "prana_round_complete"),
             om         = audioMgr.loadPranayamaCue(soundPool!!, "prana_om"),
             sessionEnd = audioMgr.loadPranayamaCue(soundPool!!, "prana_session_end"),
+            vyahritis  = Vyahriti.entries.associateWith { v ->
+                audioMgr.loadPranayamaCue(soundPool!!, "prana_vyahriti_${v.name.lowercase()}")
+            },
+            gayatri    = audioMgr.loadPranayamaCue(soundPool!!, "prana_gayatri"),
         )
     }
 

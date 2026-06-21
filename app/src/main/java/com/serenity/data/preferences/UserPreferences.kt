@@ -32,6 +32,8 @@ data class AppPreferences(
     val useFallbackBell: Boolean = true,
     val useCustomAmbient: Boolean = false,
     val customAmbientUri: String? = null,
+    val customFallbackBellUri: String? = null,
+    val vyahritiBeforeBreath: Boolean = true,  // true = play before phases; false = alongside first phase
 )
 
 @Singleton
@@ -51,9 +53,11 @@ class UserPreferencesRepository @Inject constructor(
         val REMINDER_3          = stringPreferencesKey("reminder_3")
         val STRESS_NUDGE        = booleanPreferencesKey("stress_nudge_enabled")
         val DIM_SCREEN_SEC      = intPreferencesKey("dim_screen_sec")
-        val FALLBACK_BELL       = booleanPreferencesKey("fallback_bell")
-        val USE_CUSTOM_AMBIENT  = booleanPreferencesKey("use_custom_ambient")
-        val CUSTOM_AMBIENT_URI  = stringPreferencesKey("custom_ambient_uri")
+        val FALLBACK_BELL            = booleanPreferencesKey("fallback_bell")
+        val USE_CUSTOM_AMBIENT       = booleanPreferencesKey("use_custom_ambient")
+        val CUSTOM_AMBIENT_URI       = stringPreferencesKey("custom_ambient_uri")
+        val CUSTOM_FALLBACK_BELL_URI  = stringPreferencesKey("fallback_bell_uri")
+        val VYAHRITI_BEFORE_BREATH    = booleanPreferencesKey("vyahriti_before_breath")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data
@@ -72,27 +76,34 @@ class UserPreferencesRepository @Inject constructor(
                 reminder3Time     = p[Keys.REMINDER_3],
                 stressNudgeEnabled = p[Keys.STRESS_NUDGE] ?: true,
                 dimScreenAfterSec = p[Keys.DIM_SCREEN_SEC] ?: 30,
-                useFallbackBell   = p[Keys.FALLBACK_BELL] ?: true,
-                useCustomAmbient  = p[Keys.USE_CUSTOM_AMBIENT] ?: false,
-                customAmbientUri  = p[Keys.CUSTOM_AMBIENT_URI],
+                useFallbackBell       = p[Keys.FALLBACK_BELL] ?: true,
+                useCustomAmbient      = p[Keys.USE_CUSTOM_AMBIENT] ?: false,
+                customAmbientUri      = p[Keys.CUSTOM_AMBIENT_URI],
+                customFallbackBellUri  = p[Keys.CUSTOM_FALLBACK_BELL_URI],
+                vyahritiBeforeBreath   = p[Keys.VYAHRITI_BEFORE_BREATH] ?: true,
             )
         }
 
     suspend fun update(transform: suspend (AppPreferences) -> AppPreferences) {
         context.dataStore.edit { prefs ->
             val current = AppPreferences(
-                themeMode         = prefs[Keys.THEME_MODE] ?: "system",
-                accentColour      = prefs[Keys.ACCENT_COLOUR] ?: "slate_blue",
-                showElapsedTime   = prefs[Keys.SHOW_ELAPSED] ?: false,
-                breathingAnimation = prefs[Keys.BREATHING_ANIM] ?: true,
-                dailyGoalMinutes  = prefs[Keys.DAILY_GOAL] ?: 10,
-                onboardingComplete = prefs[Keys.ONBOARDING_DONE] ?: false,
-                lastPresetId      = prefs[Keys.LAST_PRESET_ID],
-                reminder1Time     = prefs[Keys.REMINDER_1],
-                reminder2Time     = prefs[Keys.REMINDER_2],
-                reminder3Time     = prefs[Keys.REMINDER_3],
-                stressNudgeEnabled = prefs[Keys.STRESS_NUDGE] ?: true,
-                dimScreenAfterSec = prefs[Keys.DIM_SCREEN_SEC] ?: 30,
+                themeMode             = prefs[Keys.THEME_MODE] ?: "system",
+                accentColour          = prefs[Keys.ACCENT_COLOUR] ?: "slate_blue",
+                showElapsedTime       = prefs[Keys.SHOW_ELAPSED] ?: false,
+                breathingAnimation    = prefs[Keys.BREATHING_ANIM] ?: true,
+                dailyGoalMinutes      = prefs[Keys.DAILY_GOAL] ?: 10,
+                onboardingComplete    = prefs[Keys.ONBOARDING_DONE] ?: false,
+                lastPresetId          = prefs[Keys.LAST_PRESET_ID],
+                reminder1Time         = prefs[Keys.REMINDER_1],
+                reminder2Time         = prefs[Keys.REMINDER_2],
+                reminder3Time         = prefs[Keys.REMINDER_3],
+                stressNudgeEnabled    = prefs[Keys.STRESS_NUDGE] ?: true,
+                dimScreenAfterSec     = prefs[Keys.DIM_SCREEN_SEC] ?: 30,
+                useFallbackBell       = prefs[Keys.FALLBACK_BELL] ?: true,
+                useCustomAmbient      = prefs[Keys.USE_CUSTOM_AMBIENT] ?: false,
+                customAmbientUri      = prefs[Keys.CUSTOM_AMBIENT_URI],
+                customFallbackBellUri = prefs[Keys.CUSTOM_FALLBACK_BELL_URI],
+                vyahritiBeforeBreath  = prefs[Keys.VYAHRITI_BEFORE_BREATH] ?: true,
             )
             val updated = transform(current)
             prefs[Keys.THEME_MODE]       = updated.themeMode
@@ -114,6 +125,9 @@ class UserPreferencesRepository @Inject constructor(
             prefs[Keys.USE_CUSTOM_AMBIENT] = updated.useCustomAmbient
             updated.customAmbientUri?.let { prefs[Keys.CUSTOM_AMBIENT_URI] = it }
                 ?: prefs.remove(Keys.CUSTOM_AMBIENT_URI)
+            updated.customFallbackBellUri?.let { prefs[Keys.CUSTOM_FALLBACK_BELL_URI] = it }
+                ?: prefs.remove(Keys.CUSTOM_FALLBACK_BELL_URI)
+            prefs[Keys.VYAHRITI_BEFORE_BREATH] = updated.vyahritiBeforeBreath
         }
     }
 }

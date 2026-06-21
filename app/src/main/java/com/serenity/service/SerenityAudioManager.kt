@@ -51,9 +51,10 @@ class SerenityAudioManager @Inject constructor(
      * Play the system notification sound as a one-shot bell fallback.
      * Called when a bell sound ID is 0 (raw asset missing).
      */
-    fun playFallbackBell(volume: Float = 1.0f) {
+    fun playFallbackBell(volume: Float = 1.0f, customUri: Uri? = null) {
         try {
-            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val uri = customUri
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val mp = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -137,7 +138,12 @@ class SerenityAudioManager @Inject constructor(
         }
 
     fun missingPranayamaCues(): List<String> =
-        listOf("prana_inhale", "prana_hold", "prana_exhale",
-               "prana_round_complete", "prana_om", "prana_session_end")
-            .filter { context.resources.getIdentifier(it, "raw", context.packageName) == 0 }
+        listOf(
+            "prana_inhale", "prana_hold", "prana_exhale",
+            "prana_round_complete", "prana_om", "prana_session_end",
+            "prana_gayatri",
+            "prana_vyahriti_bhur", "prana_vyahriti_bhuvah", "prana_vyahriti_swaha",
+            "prana_vyahriti_mahah", "prana_vyahriti_janah", "prana_vyahriti_tapah",
+            "prana_vyahriti_satyam",
+        ).filter { context.resources.getIdentifier(it, "raw", context.packageName) == 0 }
 }

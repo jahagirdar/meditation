@@ -21,6 +21,9 @@ data class AudioSettingsState(
     val useCustomAmbient: Boolean           = false,
     val customAmbientUri: Uri?              = null,
     val customAmbientName: String?          = null,
+    val customFallbackBellUri: Uri?         = null,
+    val customFallbackBellName: String?     = null,
+    val vyahritiBeforeBreath: Boolean       = true,
     val permissionJustGranted: Boolean      = false,
 )
 
@@ -48,12 +51,17 @@ class AudioSettingsViewModel @Inject constructor(
             prefsRepo.preferences.collect { prefs ->
                 _state.update { s ->
                     s.copy(
-                        useFallbackForMissing = prefs.useFallbackBell,
-                        useCustomAmbient      = prefs.useCustomAmbient,
-                        customAmbientUri      = prefs.customAmbientUri?.let { Uri.parse(it) },
-                        customAmbientName     = prefs.customAmbientUri?.let { uri ->
+                        useFallbackForMissing  = prefs.useFallbackBell,
+                        useCustomAmbient       = prefs.useCustomAmbient,
+                        customAmbientUri       = prefs.customAmbientUri?.let { Uri.parse(it) },
+                        customAmbientName      = prefs.customAmbientUri?.let { uri ->
                             resolveDisplayName(Uri.parse(uri))
                         },
+                        customFallbackBellUri  = prefs.customFallbackBellUri?.let { Uri.parse(it) },
+                        customFallbackBellName = prefs.customFallbackBellUri?.let { uri ->
+                            resolveDisplayName(Uri.parse(uri))
+                        },
+                        vyahritiBeforeBreath   = prefs.vyahritiBeforeBreath,
                     )
                 }
             }
@@ -93,6 +101,21 @@ class AudioSettingsViewModel @Inject constructor(
         _state.update { it.copy(customAmbientUri = null, customAmbientName = null) }
         viewModelScope.launch {
             prefsRepo.update { it.copy(customAmbientUri = null) }
+        }
+    }
+
+    fun setCustomFallbackBellUri(uri: Uri?) {
+        val name = uri?.let { resolveDisplayName(it) }
+        _state.update { it.copy(customFallbackBellUri = uri, customFallbackBellName = name) }
+        viewModelScope.launch {
+            prefsRepo.update { it.copy(customFallbackBellUri = uri?.toString()) }
+        }
+    }
+
+    fun setVyahritiBeforeBreath(before: Boolean) {
+        _state.update { it.copy(vyahritiBeforeBreath = before) }
+        viewModelScope.launch {
+            prefsRepo.update { it.copy(vyahritiBeforeBreath = before) }
         }
     }
 
