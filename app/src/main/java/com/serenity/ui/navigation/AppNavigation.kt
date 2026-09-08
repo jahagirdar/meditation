@@ -76,7 +76,8 @@ fun AppNavigation(
     // On startup: if a session is already running (e.g. after config change or notification relaunch),
     // restore the preset and navigate back to the session screen.
     LaunchedEffect(Unit) {
-        if (TimerStateHolder.state.value !is TimerState.Idle && pendingPreset == null) {
+        val active = TimerStateHolder.state.value
+        if ((active is TimerState.Running || active is TimerState.Paused) && pendingPreset == null) {
             val saved = ActivePresetHolder.preset
             if (saved != null) {
                 pendingPreset = saved
@@ -126,8 +127,10 @@ fun AppNavigation(
 
         composable(Screen.Session.route) {
             // Recover preset after config change or notification relaunch when service is still running
+            val recoveredState = TimerStateHolder.state.value
             val effectivePreset = pendingPreset
-                ?: if (TimerStateHolder.state.value !is TimerState.Idle) ActivePresetHolder.preset else null
+                ?: if (recoveredState is TimerState.Running || recoveredState is TimerState.Paused)
+                    ActivePresetHolder.preset else null
             if (pendingPreset == null && effectivePreset != null) pendingPreset = effectivePreset
 
             if (effectivePreset != null) {

@@ -54,8 +54,10 @@ class SessionViewModel @Inject constructor(
     }
 
     fun startSession(preset: Preset, context: Context) {
-        // If the service is already running (e.g. after a config change), don't restart it
-        if (timerState.value !is TimerState.Idle) {
+        // If the service is already actively running (e.g. after a config change), don't restart it.
+        // Note: Idle and Completed both mean "no active session" and should allow a fresh start.
+        val active = timerState.value
+        if (active is TimerState.Running || active is TimerState.Paused) {
             currentPreset = preset
             return
         }
@@ -94,6 +96,14 @@ class SessionViewModel @Inject constructor(
     fun saveNotes(sessionId: java.util.UUID, notes: String) {
         viewModelScope.launch {
             sessionRepo.updateNotes(sessionId, notes)
+        }
+    }
+
+    /** Call once a Completed state has been observed and handled, so the shared
+     *  TimerStateHolder doesn't stay stuck at Completed and block/confuse future starts. */
+    fun consumeCompletion() {
+        if (TimerStateHolder.state.value is TimerState.Completed) {
+            TimerStateHolder.emit(TimerState.Idle)
         }
     }
 }

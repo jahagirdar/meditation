@@ -46,6 +46,7 @@ fun SessionScreen(
     LaunchedEffect(timerState) {
         if (timerState is TimerState.Completed) {
             onComplete((timerState as TimerState.Completed).actualDurationSec)
+            viewModel.consumeCompletion()
         }
     }
 
